@@ -4,7 +4,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, NAME, VERSION, ATTRIBUTION
 
 
-class IntegrationBlueprintEntity(CoordinatorEntity):
+class Entity(CoordinatorEntity):
     def __init__(self, coordinator, config_entry):
         super().__init__(coordinator)
         self.config_entry = config_entry
@@ -28,6 +28,5 @@ class IntegrationBlueprintEntity(CoordinatorEntity):
         """Return the state attributes."""
         return {
             "attribution": ATTRIBUTION,
-            "id": str(self.coordinator.data.get("id")),
             "integration": DOMAIN,
         }

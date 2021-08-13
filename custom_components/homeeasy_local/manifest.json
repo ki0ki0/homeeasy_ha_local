@@ -1,0 +1,15 @@
+{
+  "domain": "homeeasy_local",
+  "name": "Home Easy HVAC Local",
+  "documentation": "https://github.com/ki0ki0/homeeasy_ha_local",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/ki0ki0/homeeasy_ha_local/issues",
+  "version": "1.0.0",
+  "config_flow": true,
+  "requirements": [
+    "homeeasy==0.0.7"
+  ],
+  "codeowners": [
+    "@ki0ki0"
+  ]
+}

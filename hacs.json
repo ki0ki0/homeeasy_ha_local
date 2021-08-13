@@ -1,10 +1,10 @@
 {
-    "name": "Integration blueprint",
+    "name": "Home Easy HVAC Local",
+    "render_readme": true,
     "hacs": "1.6.0",
+    "iot_class": "local_polling"
     "domains": [
-        "binary_sensor",
-        "sensor",
-        "switch"
+        "climate"
     ],
     "homeassistant": "0.118.0"
 }
