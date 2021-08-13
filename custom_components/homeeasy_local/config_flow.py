@@ -1,15 +1,18 @@
 """Adds config flow for Home Easy HVAC Local."""
+import logging
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeeasy.HomeEasyLibLocal import HomeEasyLibLocal
 import voluptuous as vol
 
-from .api import ApiClient
 from .const import (
     CONF_IP,
     DOMAIN,
     PLATFORMS,
 )
+
+_LOGGER: logging.Logger = logging.getLogger(__package__)
 
 
 class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
@@ -27,6 +30,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
+            _LOGGER.debug(f"IP {user_input[CONF_IP]}")
             valid = await self._test_connection(user_input[CONF_IP])
             if valid:
                 return self.async_create_entry(
@@ -39,11 +43,6 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         return await self._show_config_form(user_input)
 
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry):
-        return OptionsFlowHandler(config_entry)
-
     async def _show_config_form(self, user_input):  # pylint: disable=unused-argument
         """Show the configuration form to edit location data."""
         return self.async_show_form(
@@ -52,48 +51,14 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=self._errors,
         )
 
-    async def _test_connection(self, username):
+    async def _test_connection(self, ip):
         """Return true if credentials is valid."""
         try:
-            session = async_create_clientsession(self.hass)
-            client = ApiClient(username, session)
-            await client.async_get_data()
+            client = HomeEasyLibLocal()
+            await client.connect(ip)
+            await client.request_status_async()
+            await client.disconnect()
             return True
         except Exception:  # pylint: disable=broad-except
             pass
         return False
-
-
-class OptionsFlowHandler(config_entries.OptionsFlow):
-    """Home Easy HVAC Local config flow options handler."""
-
-    def __init__(self, config_entry):
-        """Initialize HACS options flow."""
-        self.config_entry = config_entry
-        self.options = dict(config_entry.options)
-
-    async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
-        """Manage the options."""
-        return await self.async_step_user()
-
-    async def async_step_user(self, user_input=None):
-        """Handle a flow initialized by the user."""
-        if user_input is not None:
-            self.options.update(user_input)
-            return await self._update_options()
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(x, default=self.options.get(x, True)): bool
-                    for x in sorted(PLATFORMS)
-                }
-            ),
-        )
-
-    async def _update_options(self):
-        """Update config entry options."""
-        return self.async_create_entry(
-            title=self.config_entry.data.get(CONF_IP), data=self.options
-        )

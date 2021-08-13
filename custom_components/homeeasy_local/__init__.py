@@ -1,15 +1,12 @@
 """Custom integration to integrate Home Easy compatible HVAC with Home Assistant."""
 import asyncio
 from .coordinator import UpdateCoordinator
-from .api import ApiClient
 from datetime import timedelta
 import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Config, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
     CONF_IP,
@@ -36,10 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     ip = entry.data.get(CONF_IP)
 
-    session = async_get_clientsession(hass)
-    client = ApiClient(ip, session)
-
-    coordinator = UpdateCoordinator(hass, client=client)
+    coordinator = UpdateCoordinator(hass, ip)
     await coordinator.async_refresh()
 
     if not coordinator.last_update_success:

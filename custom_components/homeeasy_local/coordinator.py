@@ -1,6 +1,5 @@
 """Custom integration to integrate Home Easy compatible HVAC with Home Assistant."""
-import asyncio
-from .api import ApiClient
+from homeeasy.HomeEasyLibLocal import HomeEasyLibLocal
 from datetime import timedelta
 import logging
 
@@ -25,16 +24,23 @@ _LOGGER: logging.Logger = logging.getLogger(__package__)
 class UpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
-    def __init__(self, hass: HomeAssistant, client: ApiClient) -> None:
+    def __init__(self, hass: HomeAssistant, ip: str) -> None:
         """Initialize."""
-        self.api = client
+        self._ip = ip
+        self._api = HomeEasyLibLocal()
         self.platforms = []
 
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
 
     async def _async_update_data(self):
         """Update data via library."""
-        try:
-            return await self.api.async_get_data()
-        except Exception as exception:
-            raise UpdateFailed() from exception
+        await self._api.disconnect()
+        await self._api.connect(self._ip)
+        self.state = await self._api.request_status_async()
+        return self.state
+
+    async def send(self):
+        """Send state to device."""
+        await self._api.disconnect()
+        await self._api.connect(self._ip)
+        await self._api.send(self.state)

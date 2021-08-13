@@ -1,7 +1,7 @@
 """BlueprintEntity class"""
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CLIMATE, DEFAULT_NAME, DOMAIN, NAME, VERSION, ATTRIBUTION
+from .const import CLIMATE, CONF_IP, DOMAIN, NAME, VERSION, ATTRIBUTION
 
 
 class Entity(CoordinatorEntity):
@@ -15,18 +15,6 @@ class Entity(CoordinatorEntity):
         return self.config_entry.entry_id
 
     @property
-    def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, self.unique_id)},
-            "name": DEFAULT_NAME,
-            "model": VERSION,
-            "manufacturer": NAME,
-        }
-
-    @property
-    def device_state_attributes(self):
-        """Return the state attributes."""
-        return {
-            "attribution": ATTRIBUTION,
-            "integration": DOMAIN,
-        }
+    def name(self) -> str:
+        """Return the name of the thermostat, if any."""
+        return f"{DOMAIN}({self.config_entry.data.get(CONF_IP)})"

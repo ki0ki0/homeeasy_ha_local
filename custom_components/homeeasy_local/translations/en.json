@@ -2,30 +2,15 @@
     "config": {
         "step": {
             "user": {
-                "title": "Blueprint",
-                "description": "If you need help with the configuration have a look here: https://github.com/custom-components/integration_blueprint",
+                "title": "Home Easy HVAC Local",
+                "description": "Specify the IP address of your HVAC unit.",
                 "data": {
-                    "username": "Username",
-                    "password": "Password"
+                    "ip": "IP Address"
                 }
             }
         },
         "error": {
-            "auth": "Username/Password is wrong."
-        },
-        "abort": {
-            "single_instance_allowed": "Only a single instance is allowed."
-        }
-    },
-    "options": {
-        "step": {
-            "user": {
-                "data": {
-                    "binary_sensor": "Binary sensor enabled",
-                    "sensor": "Sensor enabled",
-                    "switch": "Switch enabled"
-                }
-            }
+            "auth": "Connection failed."
         }
     }
 }

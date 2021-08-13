@@ -18,9 +18,6 @@ PLATFORMS = [CLIMATE]
 # Configuration and options
 CONF_IP = "ip"
 
-# Defaults
-DEFAULT_NAME = DOMAIN
-
 
 STARTUP_MESSAGE = f"""
 -------------------------------------------------------------------

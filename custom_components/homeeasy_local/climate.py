@@ -1,5 +1,4 @@
 """Climate platform for Home Easy HVAC Local."""
-from custom_components.homeeasy_local.api import ApiClient
 from typing import List
 
 from homeeasy.DeviceState import Mode, FanMode, HorizontalFlowMode, VerticalFlowMode
@@ -19,7 +18,7 @@ from homeassistant.components.climate.const import (
 )
 from homeassistant.const import ATTR_TEMPERATURE, TEMP_CELSIUS, TEMP_FAHRENHEIT
 
-from .const import DEFAULT_NAME, DOMAIN, ICON, CLIMATE
+from .const import DOMAIN, ICON, CLIMATE
 from .entity import Entity
 
 SUPPORT_FAN = [
@@ -87,35 +86,35 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     @property
     def name(self) -> str:
         """Return the name of the thermostat, if any."""
-        return f"{DEFAULT_NAME}_{CLIMATE}"
+        return f"{super().name}_{CLIMATE}"
 
     @property
     def temperature_unit(self) -> str:
         """Return the unit of measurement."""
         return (
             TEMP_CELSIUS
-            if not self.coordinator.api.state.temperatureScale
+            if not self.coordinator.state.temperatureScale
             else TEMP_FAHRENHEIT
         )
 
     @property
     def current_temperature(self) -> float:
         """Return the current temperature."""
-        return self.coordinator.api.state.indoorTemperature
+        return self.coordinator.state.indoorTemperature
 
     @property
     def target_temperature(self) -> float:
         """Return the temperature we try to reach."""
-        return self.coordinator.api.state.desiredTemperature
+        return self.coordinator.state.desiredTemperature
 
     async def async_set_temperature(self, **kwargs) -> None:
         """Set new target temperature."""
         temperature = kwargs.get(ATTR_TEMPERATURE)
-        await self.coordinator.api.ensure_connected()
         if temperature is None:
             return
-        self.coordinator.api.state.desiredTemperature = temperature
-        await self.coordinator.api.send()
+        self.coordinator.state.desiredTemperature = temperature
+        await self.coordinator.send()
+        await self.coordinator.async_request_refresh()
 
     @property
     def target_temperature_step(self) -> float:
@@ -135,21 +134,21 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     @property
     def hvac_mode(self) -> str:
         """Return current operation ie. heat, cool, idle."""
-        if not self.coordinator.api.state.power:
+        if not self.coordinator.state.power:
             return HVAC_MODE_OFF
 
-        mode = self.coordinator.api.state.mode
+        mode = self.coordinator.state.mode
         return MODE_TO_HA_STATE_MAP[mode]
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set new target operation mode."""
-        await self.coordinator.api.ensure_connected()
         if hvac_mode == HVAC_MODE_OFF:
-            self.coordinator.api.state.power = False
+            self.coordinator.state.power = False
         else:
-            self.coordinator.api.state.power = True
-            self.coordinator.api.state.mode = HA_STATE_TO_MODE_MAP[hvac_mode]
-        await self.coordinator.api.send()
+            self.coordinator.state.power = True
+            self.coordinator.state.mode = HA_STATE_TO_MODE_MAP[hvac_mode]
+        await self.coordinator.send()
+        await self.coordinator.async_request_refresh()
 
     @property
     def hvac_modes(self):
@@ -159,15 +158,15 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     @property
     def fan_mode(self) -> str:
         """Return the fan setting."""
-        mode = int(self.coordinator.api.state.fanMode)
+        mode = int(self.coordinator.state.fanMode)
         return SUPPORT_FAN[mode]
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Set fan mode."""
-        await self.coordinator.api.ensure_connected()
         index = SUPPORT_FAN.index(fan_mode)
-        self.coordinator.api.state.fanMode = FanMode(index)
-        await self.coordinator.api.send()
+        self.coordinator.state.fanMode = FanMode(index)
+        await self.coordinator.send()
+        await self.coordinator.async_request_refresh()
 
     @property
     def fan_modes(self) -> List[str]:
@@ -180,8 +179,8 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
         for (key, value) in SWING_MODES.items():
             h, v = value
             if (
-                h == self.coordinator.api.state.flowHorizontalMode
-                and v == self.coordinator.api.state.flowVerticalMode
+                h == self.coordinator.state.flowHorizontalMode
+                and v == self.coordinator.state.flowVerticalMode
             ):
                 return key
         return list(SWING_MODES.keys())[-1]
@@ -193,12 +192,8 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
         """Set new target swing operation."""
-        await self.coordinator.api.ensure_connected()
         h, v = SWING_MODES[swing_mode]
-        self.coordinator.api.state.flowHorizontalMode = h
-        self.coordinator.api.state.flowVerticalMode = v
-        await self.coordinator.api.send()
-
-    async def async_update(self) -> None:
-        await self.coordinator.api.ensure_connected()
-        await self.coordinator.api.request_status_async()
+        self.coordinator.state.flowHorizontalMode = h
+        self.coordinator.state.flowVerticalMode = v
+        await self.coordinator.send()
+        await self.coordinator.async_request_refresh()
