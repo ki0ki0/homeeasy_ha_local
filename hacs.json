@@ -2,7 +2,7 @@
     "name": "Home Easy HVAC Local",
     "render_readme": true,
     "hacs": "1.6.0",
-    "iot_class": "local_polling"
+    "iot_class": "local_polling",
     "domains": [
         "climate"
     ],

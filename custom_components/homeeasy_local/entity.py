@@ -1,7 +1,7 @@
 """BlueprintEntity class"""
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, NAME, VERSION, ATTRIBUTION
+from .const import CLIMATE, DEFAULT_NAME, DOMAIN, NAME, VERSION, ATTRIBUTION
 
 
 class Entity(CoordinatorEntity):
@@ -18,7 +18,7 @@ class Entity(CoordinatorEntity):
     def device_info(self):
         return {
             "identifiers": {(DOMAIN, self.unique_id)},
-            "name": NAME,
+            "name": DEFAULT_NAME,
             "model": VERSION,
             "manufacturer": NAME,
         }

@@ -143,6 +143,7 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set new target operation mode."""
+        await self.coordinator.api.ensure_connected()
         if hvac_mode == HVAC_MODE_OFF:
             self.coordinator.api.state.power = False
         else:
@@ -163,6 +164,7 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Set fan mode."""
+        await self.coordinator.api.ensure_connected()
         index = SUPPORT_FAN.index(fan_mode)
         self.coordinator.api.state.fanMode = FanMode(index)
         await self.coordinator.api.send()
@@ -191,10 +193,12 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
         """Set new target swing operation."""
+        await self.coordinator.api.ensure_connected()
         h, v = SWING_MODES[swing_mode]
         self.coordinator.api.state.flowHorizontalMode = h
         self.coordinator.api.state.flowVerticalMode = v
         await self.coordinator.api.send()
 
     async def async_update(self) -> None:
+        await self.coordinator.api.ensure_connected()
         await self.coordinator.api.request_status_async()
