@@ -18,3 +18,20 @@ class Entity(CoordinatorEntity):
     def name(self) -> str:
         """Return the name of the thermostat, if any."""
         return f"{DOMAIN}({self.config_entry.data.get(CONF_IP)})"
+
+    # @property
+    # def device_info(self):
+    #     return {
+    #         "identifiers": {(DOMAIN, self.unique_id)},
+    #         "name": NAME,
+    #         "model": VERSION,
+    #         "manufacturer": NAME,
+    #     }
+
+    # @property
+    # def device_state_attributes(self):
+    #     """Return the state attributes."""
+    #     return {
+    #         "id": str(self.config_entry.entry_id),
+    #         "integration": DOMAIN,
+    #     }
