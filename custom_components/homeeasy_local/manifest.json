@@ -7,7 +7,7 @@
   "version": "1.0.0",
   "config_flow": true,
   "requirements": [
-    "homeeasy==0.0.7"
+    "git+https://github.com/ki0ki0/homeeasylib.git@new_local#devp==0.0.1beta3"
   ],
   "codeowners": [
     "@ki0ki0"

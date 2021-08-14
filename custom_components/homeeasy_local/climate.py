@@ -112,9 +112,9 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
-        self.coordinator.state.desiredTemperature = temperature
-        await self.coordinator.send()
-        await self.coordinator.async_request_refresh()
+        state = self.coordinator.state
+        state.desiredTemperature = temperature
+        await self.coordinator.send(state)
 
     @property
     def target_temperature_step(self) -> float:
@@ -142,13 +142,13 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set new target operation mode."""
+        state = self.coordinator.state
         if hvac_mode == HVAC_MODE_OFF:
-            self.coordinator.state.power = False
+            state.power = False
         else:
-            self.coordinator.state.power = True
-            self.coordinator.state.mode = HA_STATE_TO_MODE_MAP[hvac_mode]
-        await self.coordinator.send()
-        await self.coordinator.async_request_refresh()
+            state.power = True
+            state.mode = HA_STATE_TO_MODE_MAP[hvac_mode]
+        await self.coordinator.send(state)
 
     @property
     def hvac_modes(self):
@@ -164,9 +164,9 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Set fan mode."""
         index = SUPPORT_FAN.index(fan_mode)
-        self.coordinator.state.fanMode = FanMode(index)
-        await self.coordinator.send()
-        await self.coordinator.async_request_refresh()
+        state = self.coordinator.state
+        state.fanMode = FanMode(index)
+        await self.coordinator.send(state)
 
     @property
     def fan_modes(self) -> List[str]:
@@ -193,7 +193,7 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     async def async_set_swing_mode(self, swing_mode: str) -> None:
         """Set new target swing operation."""
         h, v = SWING_MODES[swing_mode]
-        self.coordinator.state.flowHorizontalMode = h
-        self.coordinator.state.flowVerticalMode = v
-        await self.coordinator.send()
-        await self.coordinator.async_request_refresh()
+        state = self.coordinator.state
+        state.flowHorizontalMode = h
+        state.flowVerticalMode = v
+        await self.coordinator.send(state)

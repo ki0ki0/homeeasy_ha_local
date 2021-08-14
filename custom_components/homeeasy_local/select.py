@@ -55,9 +55,9 @@ class HomeEasyHvacLocalVertical(Entity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
-        self.coordinator.state.flowHorizontalMode = SUPPORT_VERTICAL[option]
-        await self.coordinator.send()
-        await self.coordinator.async_request_refresh()
+        state = self.coordinator.state
+        state.flowVerticalMode = SUPPORT_VERTICAL[option]
+        await self.coordinator.send(state)
 
     @property
     def current_option(self) -> str:
@@ -86,9 +86,9 @@ class HomeEasyHvacLocalHorizontal(Entity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
-        self.coordinator.state.flowHorizontalMode = SUPPORT_HORIZONTAL[option]
-        await self.coordinator.send()
-        await self.coordinator.async_request_refresh()
+        state = self.coordinator.state
+        state.flowHorizontalMode = SUPPORT_HORIZONTAL[option]
+        await self.coordinator.send(state)
 
     @property
     def current_option(self) -> str:

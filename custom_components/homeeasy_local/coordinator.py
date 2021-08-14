@@ -1,4 +1,6 @@
 """Custom integration to integrate Home Easy compatible HVAC with Home Assistant."""
+from homeassistant.helpers.debounce import Debouncer
+from homeeasy.DeviceState import DeviceState
 from homeeasy.HomeEasyLibLocal import HomeEasyLibLocal
 from datetime import timedelta
 import logging
@@ -7,7 +9,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Config, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import (
+    DataUpdateCoordinator,
+    REQUEST_REFRESH_DEFAULT_COOLDOWN,
+    REQUEST_REFRESH_DEFAULT_IMMEDIATE,
+    UpdateFailed,
+)
 
 from .const import (
     CONF_IP,
@@ -27,20 +34,36 @@ class UpdateCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, ip: str) -> None:
         """Initialize."""
         self._ip = ip
-        self._api = HomeEasyLibLocal()
+        self._api = HomeEasyLibLocal(hass.loop, self._update_callback)
         self.platforms = []
+        self._connected = False
 
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            request_refresh_debouncer=Debouncer(
+                hass,
+                _LOGGER,
+                cooldown=60,
+                immediate=False,
+                function=self.async_refresh,
+            ),
+        )
 
     async def _async_update_data(self):
         """Update data via library."""
-        await self._api.disconnect()
-        await self._api.connect(self._ip)
-        self.state = await self._api.request_status_async()
-        return self.state
+        if not self._connected:
+            await self._api.connect(self._ip)
+            self._connected = True
 
-    async def send(self):
+        await self._api.request_status_async()
+
+    async def _update_callback(self, state):
+        """Update data via library."""
+        self.state = state
+        self.async_set_updated_data(state)
+
+    async def send(self, state):
         """Send state to device."""
-        await self._api.disconnect()
-        await self._api.connect(self._ip)
-        await self._api.send(self.state)
+        await self._api.send(state)

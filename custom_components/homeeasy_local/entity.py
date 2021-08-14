@@ -1,13 +1,18 @@
 """BlueprintEntity class"""
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CLIMATE, CONF_IP, DOMAIN, NAME, VERSION, ATTRIBUTION
+from .const import CLIMATE, CONF_IP, DOMAIN, ICON, NAME, VERSION, ATTRIBUTION
 
 
 class Entity(CoordinatorEntity):
     def __init__(self, coordinator, config_entry):
         super().__init__(coordinator)
         self.config_entry = config_entry
+
+    @property
+    def should_poll(self) -> bool:
+        """No need to poll. Coordinator notifies entity of updates."""
+        return False
 
     @property
     def unique_id(self):
@@ -18,6 +23,11 @@ class Entity(CoordinatorEntity):
     def name(self) -> str:
         """Return the name of the thermostat, if any."""
         return f"{DOMAIN}({self.config_entry.data.get(CONF_IP)})"
+
+    @property
+    def icon(self):
+        """Return the icon of this switch."""
+        return ICON
 
     # @property
     # def device_info(self):
