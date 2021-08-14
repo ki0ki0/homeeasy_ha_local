@@ -1,5 +1,9 @@
-# homeeasy_ha
+# homeeasy_ha_local
 [Hass.io](https://home-assistant.io/) integration for HVAC units compatible with Home Easy application
+
+Directly connects to HVAC unit so doen't depend manifacturer on cloud infartucture.
+
+There is also cloud based version of this integration at [homeeasy_ha](https://github.com/ki0ki0/homeeasy_ha).
 
 Uses [homeeasylib](https://github.com/ki0ki0/homeeasylib) project
 

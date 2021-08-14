@@ -31,6 +31,8 @@ _LOGGER: logging.Logger = logging.getLogger(__package__)
 class UpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
+    state: DeviceState = None
+
     def __init__(self, hass: HomeAssistant, ip: str) -> None:
         """Initialize."""
         self._ip = ip

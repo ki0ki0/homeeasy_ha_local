@@ -91,11 +91,12 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     @property
     def temperature_unit(self) -> str:
         """Return the unit of measurement."""
-        return (
-            TEMP_CELSIUS
-            if not self.coordinator.state.temperatureScale
-            else TEMP_FAHRENHEIT
-        )
+        if (
+            self.coordinator.state == None
+            or not self.coordinator.state.temperatureScale
+        ):
+            return TEMP_CELSIUS
+        return TEMP_FAHRENHEIT
 
     @property
     def current_temperature(self) -> float:

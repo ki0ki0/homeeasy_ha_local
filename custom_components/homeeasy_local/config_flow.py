@@ -54,7 +54,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def _test_connection(self, ip):
         """Return true if credentials is valid."""
         try:
-            client = HomeEasyLibLocal()
+            client = HomeEasyLibLocal(self.hass.loop, None)
             await client.connect(ip)
             await client.request_status_async()
             await client.disconnect()
