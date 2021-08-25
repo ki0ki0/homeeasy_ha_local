@@ -1,4 +1,7 @@
 # homeeasy_ha_local
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+
+
 [Hass.io](https://home-assistant.io/) integration for HVAC units compatible with Home Easy application
 
 Directly connects to HVAC unit so doen't depend manifacturer on cloud infartucture.
