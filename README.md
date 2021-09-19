@@ -15,6 +15,13 @@ Compatible with original Home Easy application:
 ### List of compatible HVAC units:
 - Cooper&Hunter Nordic Premium CH-S09FTXN-PW
 
+
+## Installation
+1. Install [HACS](https://hacs.xyz/)
+2. Add THIS repository as [custom repository](https://hacs.xyz/docs/faq/custom_repositories)
+3. Restart HA
+4. Add new integration with UI flow: Configuration → Integrations → Add integration(bottom right corner) → Search for “Home Easy HVAC Local” → Type device IP…
+
 ## Cloud-based version
 There is also a cloud-based version of this integration at [homeeasy_ha](https://github.com/ki0ki0/homeeasy_ha).
 
@@ -32,8 +39,6 @@ It is also possible to switch the original Home Easy App to this mode, but your 
 
 ### Sample QR code("CooperHunter" text):
 ![qr-code](https://user-images.githubusercontent.com/1998334/133943978-1b33b0d8-a54e-44fa-9fbd-65bd01916230.gif)
-
-
 
 
 ## License
