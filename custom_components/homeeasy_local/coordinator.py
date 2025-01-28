@@ -45,11 +45,12 @@ class UpdateCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=DOMAIN,
+            update_interval=SCAN_INTERVAL,
             request_refresh_debouncer=Debouncer(
                 hass,
                 _LOGGER,
-                cooldown=60,
-                immediate=False,
+                cooldown=10,  # Reduced from 60 to 10 seconds
+                immediate=True,  # Allow immediate updates
                 function=self.async_refresh,
             ),
         )
@@ -62,6 +63,7 @@ class UpdateCoordinator(DataUpdateCoordinator):
                 self._connected = True
 
             await self._api.request_status_async()
+            return self.state
         except Exception as ex:
             _LOGGER.error("Error updating data: %s", str(ex))
             self._connected = False
@@ -87,7 +89,16 @@ class UpdateCoordinator(DataUpdateCoordinator):
                 await self._api.connect(self._ip)
                 self._connected = True
 
+            # Send the state to the device
             await self._api.send(state)
+            
+            # Update our internal state immediately to prevent flicker
+            self.state = state
+            self.async_set_updated_data(state)
+            
+            # Log successful state update
+            _LOGGER.debug("Successfully sent and updated state")
+            
         except Exception as ex:
             self._connected = False
             _LOGGER.error("Error sending state to device: %s", str(ex))

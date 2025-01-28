@@ -183,7 +183,6 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
 
         state.desiredTemperature = temperature
         await self.coordinator.send(state)
-        await self.coordinator.async_refresh()
 
     @property
     def hvac_mode(self) -> HVACMode:
@@ -207,7 +206,6 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
             state.mode = HA_STATE_TO_MODE_MAP[hvac_mode]
 
         await self.coordinator.send(state)
-        await self.coordinator.async_refresh()
 
     async def async_turn_on(self) -> None:
         """Turn the entity on."""
@@ -217,7 +215,6 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
 
         state.power = True
         await self.coordinator.send(state)
-        await self.coordinator.async_refresh()
 
     async def async_turn_off(self) -> None:
         """Turn the entity off."""
@@ -227,7 +224,6 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
 
         state.power = False
         await self.coordinator.send(state)
-        await self.coordinator.async_refresh()
 
     @property
     def fan_mode(self) -> str | None:
@@ -248,7 +244,6 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
         index = SUPPORT_FAN.index(fan_mode)
         state.fanMode = FanMode(index)
         await self.coordinator.send(state)
-        await self.coordinator.async_refresh()
 
     @property
     def swing_mode(self) -> str:
@@ -275,4 +270,3 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
         state.flowHorizontalMode = h
         state.flowVerticalMode = v
         await self.coordinator.send(state)
-        await self.coordinator.async_refresh()
