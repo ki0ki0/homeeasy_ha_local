@@ -1,8 +1,8 @@
 """Custom integration to integrate Home Easy compatible HVAC with Home Assistant."""
+
 import asyncio
-from .coordinator import UpdateCoordinator
-from datetime import timedelta
 import logging
+from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Config, HomeAssistant
@@ -14,6 +14,7 @@ from .const import (
     PLATFORMS,
     STARTUP_MESSAGE,
 )
+from .coordinator import UpdateCoordinator
 
 SCAN_INTERVAL = timedelta(seconds=30)
 
@@ -41,29 +42,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
-    for platform in PLATFORMS:
-        if entry.options.get(platform, True):
-            coordinator.platforms.append(platform)
-            hass.async_add_job(
-                hass.config_entries.async_forward_entry_setup(entry, platform)
-            )
+    if enabled_platforms := [
+        platform for platform in PLATFORMS if entry.options.get(platform, True)
+    ]:
+        coordinator.platforms.extend(enabled_platforms)
+        await hass.config_entries.async_forward_entry_setups(entry, enabled_platforms)
 
-    entry.add_update_listener(async_reload_entry)
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    unloaded = all(
-        await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(entry, platform)
-                for platform in PLATFORMS
-                if platform in coordinator.platforms
-            ]
-        )
+    unloaded = await hass.config_entries.async_unload_platforms(
+        entry, [platform for platform in PLATFORMS if platform in coordinator.platforms]
     )
+
     if unloaded:
         hass.data[DOMAIN].pop(entry.entry_id)
 

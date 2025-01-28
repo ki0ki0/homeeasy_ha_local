@@ -1,20 +1,21 @@
 """Custom integration to integrate Home Easy compatible HVAC with Home Assistant."""
-from homeassistant.helpers.debounce import Debouncer
-from homeeasy.DeviceState import DeviceState
-from homeeasy.HomeEasyLibLocal import HomeEasyLibLocal
-from datetime import timedelta
+
 import logging
+from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Config, HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
     REQUEST_REFRESH_DEFAULT_COOLDOWN,
     REQUEST_REFRESH_DEFAULT_IMMEDIATE,
+    DataUpdateCoordinator,
     UpdateFailed,
 )
+from homeeasy.DeviceState import DeviceState
+from homeeasy.HomeEasyLibLocal import HomeEasyLibLocal
 
 from .const import (
     CONF_IP,
@@ -44,28 +45,61 @@ class UpdateCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=DOMAIN,
+            update_interval=SCAN_INTERVAL,
             request_refresh_debouncer=Debouncer(
                 hass,
                 _LOGGER,
-                cooldown=60,
-                immediate=False,
+                cooldown=10,  # Reduced from 60 to 10 seconds
+                immediate=True,  # Allow immediate updates
                 function=self.async_refresh,
             ),
         )
 
     async def _async_update_data(self):
         """Update data via library."""
-        if not self._connected:
-            await self._api.connect(self._ip)
-            self._connected = True
+        try:
+            if not self._connected:
+                await self._api.connect(self._ip)
+                self._connected = True
 
-        await self._api.request_status_async()
+            await self._api.request_status_async()
+            return self.state
+        except Exception as ex:
+            _LOGGER.error("Error updating data: %s", str(ex))
+            self._connected = False
+            raise UpdateFailed(f"Error communicating with API: {str(ex)}")
 
     async def _update_callback(self, state):
         """Update data via library."""
-        self.state = state
-        self.async_set_updated_data(state)
+        try:
+            self.state = state
+            self.async_set_updated_data(state)
+        except Exception as ex:
+            _LOGGER.error("Error in update callback: %s", str(ex))
 
     async def send(self, state):
         """Send state to device."""
-        await self._api.send(state)
+        if state is None:
+            _LOGGER.error("Cannot send None state")
+            return
+
+        try:
+            if not self._connected:
+                _LOGGER.warning("Reconnecting to device...")
+                await self._api.connect(self._ip)
+                self._connected = True
+
+            # Send the state to the device
+            await self._api.send(state)
+            
+            # Update our internal state immediately to prevent flicker
+            self.state = state
+            self.async_set_updated_data(state)
+            
+            # Log successful state update
+            _LOGGER.debug("Successfully sent and updated state")
+            
+        except Exception as ex:
+            self._connected = False
+            _LOGGER.error("Error sending state to device: %s", str(ex))
+            raise HomeAssistantError(f"Failed to send state to device: {str(ex)}")
