@@ -1,27 +1,38 @@
 """Climate platform for Home Easy HVAC Local."""
-from typing import List
 
-from homeeasy.DeviceState import Mode, FanMode, HorizontalFlowMode, VerticalFlowMode
-from homeeasy.HomeEasyLib import HomeEasyLib, DeviceState
+from __future__ import annotations
 
-from homeassistant.components.climate import ClimateEntity
-from homeassistant.components.climate.const import (
-    HVAC_MODE_OFF,
-    HVAC_MODE_AUTO,
-    HVAC_MODE_COOL,
-    HVAC_MODE_DRY,
-    HVAC_MODE_FAN_ONLY,
-    HVAC_MODE_HEAT,
-    SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_FAN_MODE,
-    SUPPORT_SWING_MODE,
+from typing import Any, Final, TypeVar
+
+from homeassistant.components.climate import (
+    FAN_AUTO,
+    FAN_HIGH,
+    FAN_LOW,
+    FAN_MEDIUM,
+    SWING_BOTH,
+    SWING_HORIZONTAL,
+    SWING_OFF,
+    SWING_VERTICAL,
+    ClimateEntity,
+    ClimateEntityFeature,
+    HVACAction,
+    HVACMode,
 )
-from homeassistant.const import ATTR_TEMPERATURE, TEMP_CELSIUS, TEMP_FAHRENHEIT
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import ATTR_TEMPERATURE, Platform, UnitOfTemperature
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeeasy.DeviceState import FanMode, HorizontalFlowMode, Mode, VerticalFlowMode
+from homeeasy.HomeEasyLib import DeviceState, HomeEasyLib
 
-from .const import DOMAIN, ICON, CLIMATE
+from .const import CLIMATE, DOMAIN, ICON
+from .coordinator import UpdateCoordinator
 from .entity import Entity
 
-SUPPORT_FAN = [
+CoordinatorT = TypeVar("CoordinatorT", bound="UpdateCoordinator")
+
+SUPPORT_FAN: Final = [
     "Auto",
     "Lowest",
     "Low",
@@ -33,168 +44,235 @@ SUPPORT_FAN = [
     "Turbo",
 ]
 
-SUPPORT_HVAC = [
-    HVAC_MODE_OFF,
-    HVAC_MODE_AUTO,
-    HVAC_MODE_COOL,
-    HVAC_MODE_DRY,
-    HVAC_MODE_FAN_ONLY,
-    HVAC_MODE_HEAT,
+SUPPORT_HVAC: Final = [
+    HVACMode.OFF,
+    HVACMode.AUTO,
+    HVACMode.COOL,
+    HVACMode.DRY,
+    HVACMode.FAN_ONLY,
+    HVACMode.HEAT,
 ]
 
-HA_STATE_TO_MODE_MAP = {
-    HVAC_MODE_AUTO: Mode.Auto,
-    HVAC_MODE_COOL: Mode.Cool,
-    HVAC_MODE_DRY: Mode.Dry,
-    HVAC_MODE_FAN_ONLY: Mode.Fan,
-    HVAC_MODE_HEAT: Mode.Heat,
+HA_STATE_TO_MODE_MAP: Final = {
+    HVACMode.AUTO: Mode.Auto,
+    HVACMode.COOL: Mode.Cool,
+    HVACMode.DRY: Mode.Dry,
+    HVACMode.FAN_ONLY: Mode.Fan,
+    HVACMode.HEAT: Mode.Heat,
 }
 
-MODE_TO_HA_STATE_MAP = {value: key for key, value in HA_STATE_TO_MODE_MAP.items()}
+MODE_TO_HA_STATE_MAP: Final = {
+    value: key for key, value in HA_STATE_TO_MODE_MAP.items()
+}
 
-SWING_MODES = {
-    "Stop": (HorizontalFlowMode.Stop, VerticalFlowMode.Stop),
-    "Horizontal": (HorizontalFlowMode.Swing, VerticalFlowMode.Stop),
-    "Vertical": (HorizontalFlowMode.Stop, VerticalFlowMode.Swing),
-    "Both": (HorizontalFlowMode.Swing, VerticalFlowMode.Swing),
-    "Custom": (HorizontalFlowMode.Stop, VerticalFlowMode.Stop),
+SWING_MODES: Final = {
+    SWING_OFF: (HorizontalFlowMode.Stop, VerticalFlowMode.Stop),
+    SWING_HORIZONTAL: (HorizontalFlowMode.Swing, VerticalFlowMode.Stop),
+    SWING_VERTICAL: (HorizontalFlowMode.Stop, VerticalFlowMode.Swing),
+    SWING_BOTH: (HorizontalFlowMode.Swing, VerticalFlowMode.Swing),
 }
 
 
-async def async_setup_entry(hass, entry, async_add_devices):
-    """Setup climate platform."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_devices([HomeEasyHvacLocal(coordinator, entry)])
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up climate platform."""
+    coordinator: UpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities([HomeEasyHvacLocal(coordinator, entry)])
 
 
 class HomeEasyHvacLocal(Entity, ClimateEntity):
     """Home Easy Local climate class."""
 
+    _attr_has_entity_name = True
+    _enable_turn_on_off_backwards_compatibility = False
+    _attr_target_temperature_step = 1
+    _attr_min_temp = 16
+    _attr_max_temp = 31
+
+    def __init__(self, coordinator: CoordinatorT, config_entry: ConfigEntry) -> None:
+        """Initialize the climate device."""
+        super().__init__(coordinator, config_entry)
+        self._attr_supported_features = (
+            ClimateEntityFeature.TARGET_TEMPERATURE
+            | ClimateEntityFeature.FAN_MODE
+            | ClimateEntityFeature.SWING_MODE
+            | ClimateEntityFeature.TURN_ON
+            | ClimateEntityFeature.TURN_OFF
+        )
+        self._attr_hvac_modes = SUPPORT_HVAC
+        self._attr_fan_modes = list(SUPPORT_FAN)
+        self._attr_swing_modes = list(SWING_MODES.keys())
+        self._attr_temperature_unit = UnitOfTemperature.CELSIUS
+
+    @property
+    def _state(self) -> DeviceState | None:
+        """Return coordinator state with proper typing."""
+        return self.coordinator.state
+
     @property
     def should_poll(self) -> bool:
-        """Return True if entity has to be polled for state.
-
-        False if entity pushes its state to HA.
-        """
+        """Return True if entity has to be polled for state."""
         return True
 
     @property
-    def supported_features(self) -> int:
-        """Return the list of supported features."""
-        return SUPPORT_TARGET_TEMPERATURE | SUPPORT_FAN_MODE | SUPPORT_SWING_MODE
-
-    @property
     def name(self) -> str:
-        """Return the name of the thermostat, if any."""
+        """Return the name of the thermostat."""
         return f"{super().name}_{CLIMATE}"
 
     @property
     def temperature_unit(self) -> str:
         """Return the unit of measurement."""
-        if (
-            self.coordinator.state == None
-            or not self.coordinator.state.temperatureScale
-        ):
-            return TEMP_CELSIUS
-        return TEMP_FAHRENHEIT
+        state = self._state
+        if state is None or not state.temperatureScale:
+            return UnitOfTemperature.CELSIUS
+        return UnitOfTemperature.FAHRENHEIT
 
     @property
-    def current_temperature(self) -> float:
+    def hvac_action(self) -> HVACAction | None:
+        """Return the current HVAC action."""
+        state = self._state
+        if state is None or not state.power:
+            return HVACAction.OFF
+
+        mode = state.mode
+        current_temp = self.current_temperature
+        target_temp = self.target_temperature
+
+        if current_temp is None or target_temp is None:
+            return HVACAction.IDLE
+
+        if mode == Mode.Heat and current_temp < target_temp:
+            return HVACAction.HEATING
+        if mode == Mode.Cool and current_temp > target_temp:
+            return HVACAction.COOLING
+        if mode == Mode.Dry:
+            return HVACAction.DRYING
+        if mode == Mode.Fan:
+            return HVACAction.FAN
+
+        return HVACAction.IDLE
+
+    @property
+    def current_temperature(self) -> float | None:
         """Return the current temperature."""
-        return self.coordinator.state.indoorTemperature
+        state = self._state
+        if state is None:
+            return None
+        return state.indoorTemperature
 
     @property
-    def target_temperature(self) -> float:
+    def target_temperature(self) -> float | None:
         """Return the temperature we try to reach."""
-        return self.coordinator.state.desiredTemperature
+        state = self._state
+        if state is None:
+            return None
+        return state.desiredTemperature
 
-    async def async_set_temperature(self, **kwargs) -> None:
+    async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
+        state = self._state
+        if state is None:
+            return
+
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
-        state = self.coordinator.state
+
         state.desiredTemperature = temperature
         await self.coordinator.send(state)
+        await self.coordinator.async_refresh()
 
     @property
-    def target_temperature_step(self) -> float:
-        """Return the supported step of target temperature."""
-        return 1
-
-    @property
-    def min_temp(self) -> float:
-        """Return the minimum temperature."""
-        return 16
-
-    @property
-    def max_temp(self) -> float:
-        """Return the maximum temperature."""
-        return 31
-
-    @property
-    def hvac_mode(self) -> str:
+    def hvac_mode(self) -> HVACMode:
         """Return current operation ie. heat, cool, idle."""
-        if not self.coordinator.state.power:
-            return HVAC_MODE_OFF
+        state = self._state
+        if state is None or not state.power:
+            return HVACMode.OFF
 
-        mode = self.coordinator.state.mode
-        return MODE_TO_HA_STATE_MAP[mode]
+        return MODE_TO_HA_STATE_MAP[state.mode]
 
-    async def async_set_hvac_mode(self, hvac_mode: str) -> None:
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set new target operation mode."""
-        state = self.coordinator.state
-        if hvac_mode == HVAC_MODE_OFF:
+        state = self._state
+        if state is None:
+            return
+
+        if hvac_mode == HVACMode.OFF:
             state.power = False
         else:
             state.power = True
             state.mode = HA_STATE_TO_MODE_MAP[hvac_mode]
+
         await self.coordinator.send(state)
+        await self.coordinator.async_refresh()
+
+    async def async_turn_on(self) -> None:
+        """Turn the entity on."""
+        state = self._state
+        if state is None:
+            return
+
+        state.power = True
+        await self.coordinator.send(state)
+        await self.coordinator.async_refresh()
+
+    async def async_turn_off(self) -> None:
+        """Turn the entity off."""
+        state = self._state
+        if state is None:
+            return
+
+        state.power = False
+        await self.coordinator.send(state)
+        await self.coordinator.async_refresh()
 
     @property
-    def hvac_modes(self):
-        """Return the list of available operation modes."""
-        return SUPPORT_HVAC
-
-    @property
-    def fan_mode(self) -> str:
+    def fan_mode(self) -> str | None:
         """Return the fan setting."""
-        mode = int(self.coordinator.state.fanMode)
+        state = self._state
+        if state is None:
+            return None
+
+        mode = int(state.fanMode)
         return SUPPORT_FAN[mode]
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Set fan mode."""
+        state = self._state
+        if state is None:
+            return
+
         index = SUPPORT_FAN.index(fan_mode)
-        state = self.coordinator.state
         state.fanMode = FanMode(index)
         await self.coordinator.send(state)
-
-    @property
-    def fan_modes(self) -> List[str]:
-        """List of available fan modes."""
-        return SUPPORT_FAN
+        await self.coordinator.async_refresh()
 
     @property
     def swing_mode(self) -> str:
         """Return the swing setting."""
-        for (key, value) in SWING_MODES.items():
-            h, v = value
-            if (
-                h == self.coordinator.state.flowHorizontalMode
-                and v == self.coordinator.state.flowVerticalMode
-            ):
-                return key
-        return list(SWING_MODES.keys())[-1]
+        state = self._state
+        if state is None:
+            return SWING_OFF
 
-    @property
-    def swing_modes(self) -> List[str]:
-        """Return the list of available swing modes."""
-        return list(SWING_MODES.keys())
+        current_h = state.flowHorizontalMode
+        current_v = state.flowVerticalMode
+
+        for mode, (h, v) in SWING_MODES.items():
+            if h == current_h and v == current_v:
+                return mode
+        return SWING_OFF
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
         """Set new target swing operation."""
+        state = self._state
+        if state is None or swing_mode not in SWING_MODES:
+            return
+
         h, v = SWING_MODES[swing_mode]
-        state = self.coordinator.state
         state.flowHorizontalMode = h
         state.flowVerticalMode = v
         await self.coordinator.send(state)
+        await self.coordinator.async_refresh()
