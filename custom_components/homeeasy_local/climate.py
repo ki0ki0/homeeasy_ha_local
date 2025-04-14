@@ -6,17 +6,10 @@ from homeeasy.HomeEasyLib import HomeEasyLib, DeviceState
 
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
-    HVAC_MODE_OFF,
-    HVAC_MODE_AUTO,
-    HVAC_MODE_COOL,
-    HVAC_MODE_DRY,
-    HVAC_MODE_FAN_ONLY,
-    HVAC_MODE_HEAT,
-    SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_FAN_MODE,
-    SUPPORT_SWING_MODE,
+    HVACMode,
+    ClimateEntityFeature,
 )
-from homeassistant.const import ATTR_TEMPERATURE, TEMP_CELSIUS, TEMP_FAHRENHEIT
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature 
 
 from .const import DOMAIN, ICON, CLIMATE
 from .entity import Entity
@@ -34,20 +27,20 @@ SUPPORT_FAN = [
 ]
 
 SUPPORT_HVAC = [
-    HVAC_MODE_OFF,
-    HVAC_MODE_AUTO,
-    HVAC_MODE_COOL,
-    HVAC_MODE_DRY,
-    HVAC_MODE_FAN_ONLY,
-    HVAC_MODE_HEAT,
+    HVACMode.OFF,
+    HVACMode.AUTO,
+    HVACMode.COOL,
+    HVACMode.DRY,
+    HVACMode.FAN_ONLY,
+    HVACMode.HEAT,
 ]
 
 HA_STATE_TO_MODE_MAP = {
-    HVAC_MODE_AUTO: Mode.Auto,
-    HVAC_MODE_COOL: Mode.Cool,
-    HVAC_MODE_DRY: Mode.Dry,
-    HVAC_MODE_FAN_ONLY: Mode.Fan,
-    HVAC_MODE_HEAT: Mode.Heat,
+    HVACMode.AUTO: Mode.Auto,
+    HVACMode.COOL: Mode.Cool,
+    HVACMode.DRY: Mode.Dry,
+    HVACMode.FAN_ONLY: Mode.Fan,
+    HVACMode.HEAT: Mode.Heat,
 }
 
 MODE_TO_HA_STATE_MAP = {value: key for key, value in HA_STATE_TO_MODE_MAP.items()}
@@ -81,7 +74,7 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     @property
     def supported_features(self) -> int:
         """Return the list of supported features."""
-        return SUPPORT_TARGET_TEMPERATURE | SUPPORT_FAN_MODE | SUPPORT_SWING_MODE
+        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.SWING_MODE
 
     @property
     def name(self) -> str:
@@ -95,8 +88,8 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
             self.coordinator.state == None
             or not self.coordinator.state.temperatureScale
         ):
-            return TEMP_CELSIUS
-        return TEMP_FAHRENHEIT
+            return UnitOfTemperature.CELSIUS 
+        return UnitOfTemperature.FAHRENHEIT 
 
     @property
     def current_temperature(self) -> float:
@@ -136,7 +129,7 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     def hvac_mode(self) -> str:
         """Return current operation ie. heat, cool, idle."""
         if not self.coordinator.state.power:
-            return HVAC_MODE_OFF
+            return HVACMode.OFF
 
         mode = self.coordinator.state.mode
         return MODE_TO_HA_STATE_MAP[mode]
@@ -144,7 +137,7 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set new target operation mode."""
         state = self.coordinator.state
-        if hvac_mode == HVAC_MODE_OFF:
+        if hvac_mode == HVACMode.OFF:
             state.power = False
         else:
             state.power = True
