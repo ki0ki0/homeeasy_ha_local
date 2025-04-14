@@ -9,7 +9,7 @@ from homeassistant.components.climate.const import (
     HVACMode,
     ClimateEntityFeature,
 )
-from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature 
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 
 from .const import DOMAIN, ICON, CLIMATE
 from .entity import Entity
@@ -88,17 +88,21 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
             self.coordinator.state == None
             or not self.coordinator.state.temperatureScale
         ):
-            return UnitOfTemperature.CELSIUS 
-        return UnitOfTemperature.FAHRENHEIT 
+            return UnitOfTemperature.CELSIUS
+        return UnitOfTemperature.FAHRENHEIT
 
     @property
-    def current_temperature(self) -> float:
+    def current_temperature(self) -> float | None:
         """Return the current temperature."""
+        if self.coordinator.state is None:
+            return None
         return self.coordinator.state.indoorTemperature
 
     @property
-    def target_temperature(self) -> float:
+    def target_temperature(self) -> float | None:
         """Return the temperature we try to reach."""
+        if self.coordinator.state is None:
+            return None
         return self.coordinator.state.desiredTemperature
 
     async def async_set_temperature(self, **kwargs) -> None:
@@ -128,11 +132,10 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     @property
     def hvac_mode(self) -> str:
         """Return current operation ie. heat, cool, idle."""
-        if not self.coordinator.state.power:
-            return HVACMode.OFF
+        if self.coordinator.state is None or not self.coordinator.state.power:
+            return HVACMode.OFF 
 
-        mode = self.coordinator.state.mode
-        return MODE_TO_HA_STATE_MAP[mode]
+        return MODE_TO_HA_STATE_MAP[self.coordinator.state.mode]
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set new target operation mode."""
@@ -150,8 +153,10 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
         return SUPPORT_HVAC
 
     @property
-    def fan_mode(self) -> str:
+    def fan_mode(self) -> str | None:
         """Return the fan setting."""
+        if self.coordinator.state is None:
+            return None
         mode = int(self.coordinator.state.fanMode)
         return SUPPORT_FAN[mode]
 
@@ -170,6 +175,9 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     @property
     def swing_mode(self) -> str:
         """Return the swing setting."""
+        if self.coordinator.state is None:
+            return list(SWING_MODES.keys())[-1]
+
         for (key, value) in SWING_MODES.items():
             h, v = value
             if (
@@ -186,6 +194,8 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
         """Set new target swing operation."""
+        if self.coordinator.state is None:
+            return None
         h, v = SWING_MODES[swing_mode]
         state = self.coordinator.state
         state.flowHorizontalMode = h
