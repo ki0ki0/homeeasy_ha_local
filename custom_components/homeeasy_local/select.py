@@ -60,7 +60,7 @@ class HomeEasyHvacLocalVertical(Entity, SelectEntity):
         await self.coordinator.send(state)
 
     @property
-    def current_option(self) -> str | None:
+    def current_option(self) -> str:
         """Return the selected entity option to represent the entity state."""
         if self.coordinator.state is None:
             return None
@@ -94,7 +94,7 @@ class HomeEasyHvacLocalHorizontal(Entity, SelectEntity):
         await self.coordinator.send(state)
 
     @property
-    def current_option(self) -> str | None:
+    def current_option(self) -> str:
         """Return the selected entity option to represent the entity state."""
         if self.coordinator.state is None:
             return None
