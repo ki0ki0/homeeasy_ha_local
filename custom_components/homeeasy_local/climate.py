@@ -92,14 +92,14 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
         return UnitOfTemperature.FAHRENHEIT
 
     @property
-    def current_temperature(self) -> float | None:
+    def current_temperature(self) -> float:
         """Return the current temperature."""
         if self.coordinator.state is None:
             return None
         return self.coordinator.state.indoorTemperature
 
     @property
-    def target_temperature(self) -> float | None:
+    def target_temperature(self) -> float :
         """Return the temperature we try to reach."""
         if self.coordinator.state is None:
             return None
@@ -153,10 +153,10 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
         return SUPPORT_HVAC
 
     @property
-    def fan_mode(self) -> str | None:
+    def fan_mode(self) -> str:
         """Return the fan setting."""
         if self.coordinator.state is None:
-            return None
+            return  SUPPORT_FAN[0]
         mode = int(self.coordinator.state.fanMode)
         return SUPPORT_FAN[mode]
 
@@ -195,7 +195,7 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     async def async_set_swing_mode(self, swing_mode: str) -> None:
         """Set new target swing operation."""
         if self.coordinator.state is None:
-            return None
+            return
         h, v = SWING_MODES[swing_mode]
         state = self.coordinator.state
         state.flowHorizontalMode = h
