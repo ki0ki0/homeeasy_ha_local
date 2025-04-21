@@ -7,5 +7,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/ki0ki0/homeeasy_ha_local/issues",
   "requirements": [ "homeeasy==0.0.8" ],
-  "version": "1.0.0"
+  "version": "1.1.0"
 }
