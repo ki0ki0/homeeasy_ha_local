@@ -62,6 +62,9 @@ class HomeEasyHvacLocalVertical(Entity, SelectEntity):
     @property
     def current_option(self) -> str:
         """Return the selected entity option to represent the entity state."""
+        if self.coordinator.state is None:
+            return None
+
         for (key, value) in SUPPORT_VERTICAL.items():
             if self.coordinator.state.flowVerticalMode == value:
                 return key
@@ -93,6 +96,9 @@ class HomeEasyHvacLocalHorizontal(Entity, SelectEntity):
     @property
     def current_option(self) -> str:
         """Return the selected entity option to represent the entity state."""
+        if self.coordinator.state is None:
+            return None
+            
         for (key, value) in SUPPORT_HORIZONTAL.items():
             if self.coordinator.state.flowHorizontalMode == value:
                 return key
