@@ -13,7 +13,8 @@ ICON = "mdi:air-conditioner"
 # Platforms
 CLIMATE = "climate"
 SELECT = "select"
-PLATFORMS = [CLIMATE, SELECT]
+SWITCH = "switch"
+PLATFORMS = [CLIMATE, SELECT, SWITCH]
 
 
 # Configuration and options
