@@ -74,7 +74,13 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
     @property
     def supported_features(self) -> int:
         """Return the list of supported features."""
-        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.SWING_MODE
+        return (
+            ClimateEntityFeature.TARGET_TEMPERATURE
+            | ClimateEntityFeature.FAN_MODE
+            | ClimateEntityFeature.SWING_MODE
+            | ClimateEntityFeature.TURN_ON
+            | ClimateEntityFeature.TURN_OFF
+        )
 
     @property
     def name(self) -> str:
@@ -145,6 +151,22 @@ class HomeEasyHvacLocal(Entity, ClimateEntity):
         else:
             state.power = True
             state.mode = HA_STATE_TO_MODE_MAP[hvac_mode]
+        await self.coordinator.send(state)
+
+    async def async_turn_on(self) -> None:
+        """Turn the climate device on."""
+        state = self.coordinator.state
+        if state is None:
+            return
+        state.power = True
+        await self.coordinator.send(state)
+
+    async def async_turn_off(self) -> None:
+        """Turn the climate device off."""
+        state = self.coordinator.state
+        if state is None:
+            return
+        state.power = False
         await self.coordinator.send(state)
 
     @property
